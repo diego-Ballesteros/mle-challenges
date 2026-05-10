@@ -11,17 +11,20 @@ ENDPOINT = "https://utpyawapnk.execute-api.us-east-1.amazonaws.com/Prod/challeng
 
 PROFILE: dict = {
     "name": "Diego Andres Ballesteros Cediel",
-    "occupation": "Desarrollador de Software Junior | Transitioning to ML Engineer",
+    "occupation": "Desarrollador de Software | Transicionando al ML Engineer y AI Engineer",
     "interests": [
         "machine learning",
         "mlops",
         "python",
         "backend development",
         "software architecture",
+        "Futbol",
+        "Agentic AI",
+        "UFC"
     ],
     "bio": (
         "Vengo del mundo del desarrollo de software y estoy construyendo mi camino hacia "
-        "Machine Learning Engineering. Apasionado por llevar modelos a producción con "
+        "Machine Learning Engineering. Aprendiendo a llevar modelos a producción con "
         "buenas prácticas de ingeniería."
     ),
     "github_url": "https://github.com/diego-Ballesteros",
@@ -73,7 +76,6 @@ def print_result(response_data: dict) -> None:
     print(f"  submission_id : {submission_id}")
     print(f"  timestamp     : {timestamp}")
     print("─" * 52)
-    print("  Guarda tu submission_id")
 
 
 def submit_profile(api_key: str) -> None:
