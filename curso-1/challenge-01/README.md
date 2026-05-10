@@ -43,5 +43,6 @@ uv run python solution.py
   submission_id : xxxx-xxxx-xxxx
   timestamp     : xxxx
 ────────────────────────────────────────────────────
-  Guarda tu submission_id
+  
 ```
+submission id: 177845517731180b57d7685db6e6d
