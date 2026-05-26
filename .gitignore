@@ -6,3 +6,7 @@ __pycache__/
 .DS_Store
 dist/
 .pytest_cache/
+**/train.csv
+**/test.csv
+**/sample_submission.csv
+.env.
