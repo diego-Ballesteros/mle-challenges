@@ -120,6 +120,25 @@ Descartados (mayor a menor ratio): P05, P01, P04, P08, P03, P06
 PASO 5 — JSON final:
 ["P02","P09","P10","P07","P05","P01","P04","P08","P03","P06"]
 
+VERIFICACIÓN OBLIGATORIA antes de emitir el JSON:
+
+Antes de responder, haz estas 3 comprobaciones:
+
+1. SWAP TEST: Para cada paquete dentro del subset óptimo,
+   intenta reemplazarlo por cada paquete fuera del subset.
+   ¿Algún swap mejora el valor sin exceder la capacidad?
+   Si sí → acepta el swap y repite el test.
+
+2. ADD TEST: ¿Hay algún paquete fuera del subset que
+   todavía quepa en el espacio restante?
+   Si sí → agrégalo.
+
+3. PESO FINAL: Suma explícitamente los pesos del subset.
+   ¿El total es <= capacidad? Si no → elimina el paquete
+   de menor valor hasta que quepa.
+
+Solo emite el JSON después de pasar estas 3 verificaciones.
+
 --- AHORA TU TURNO ---
 
 {{input}}

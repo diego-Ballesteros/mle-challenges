@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import math
 import sys
 import time
 from pathlib import Path
@@ -15,7 +17,8 @@ BASE_URL = "https://utpyawapnk.execute-api.us-east-1.amazonaws.com/Prod"
 CHALLENGE_PATH = "/challenges/03/submissions"
 MAX_PROMPT_CHARS = 8000
 POLL_INTERVAL = 5
-MAX_POLL_ATTEMPTS = 40
+MAX_POLL_ATTEMPTS = 60
+REPEAT_DELAY = 30  # segundos de espera entre submissions en modo --repeat
 
 
 def load_api_key() -> str:
@@ -150,7 +153,7 @@ def print_result(result: dict, submission_id: str) -> None:
         submission_id: The submission ID string.
     """
     status = result.get("status", "unknown")
-    metrics = result.get("metrics", {})
+    metrics = result.get("metrics") or {}
     value_ratio = metrics.get("value_ratio", float("nan"))
     exact_match = metrics.get("exact_match", float("nan"))
     n_instances = metrics.get("n", "?")
@@ -177,20 +180,16 @@ def print_result(result: dict, submission_id: str) -> None:
     print("================================================")
 
 
-def main() -> None:
-    """Run the full submit-and-poll flow for Challenge 03."""
-    api_key = load_api_key()
-    prompt = load_prompt()
-    validate_prompt(prompt)
+def run_single(prompt: str, api_key: str) -> tuple[str, dict]:
+    """Submit the prompt once and poll until it is scored.
 
-    # Verificación: el prompt se envía TAL CUAL desde prompt.txt; el servidor
-    # sustituye {{input}}, no este script. Mostramos lo que realmente se manda.
-    print("------------------------------------------------")
-    print("Prompt exacto enviado (primeros 500 chars):")
-    print(repr(prompt[:500]))
-    print(f"Contiene placeholder '{{{{input}}}}': {'{{input}}' in prompt}")
-    print("------------------------------------------------")
+    Args:
+        prompt: The prompt string to submit.
+        api_key: The DSRP API key for authentication.
 
+    Returns:
+        A tuple of (submission_id, final result dict).
+    """
     print("Enviando prompt a la API...")
     submission = submit_prompt(prompt, api_key)
 
@@ -203,7 +202,120 @@ def main() -> None:
     else:
         result = submission
 
-    print_result(result, submission_id)
+    return submission_id, result
+
+
+def _fmt_metric(value: object) -> str:
+    """Format a metric as a 4-decimal string, or pass through if non-numeric."""
+    try:
+        return f"{float(value):.4f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def print_summary_table(rows: list[dict]) -> None:
+    """Print a box-drawing summary table plus best/mean value_ratio.
+
+    Args:
+        rows: One dict per run with keys n, submission_id, value_ratio, exact_match.
+    """
+    headers = ["#", "submission_id", "value_ratio", "exact_match"]
+    table = [
+        [
+            str(r["n"]),
+            r["submission_id"] or "—",
+            _fmt_metric(r["value_ratio"]),
+            _fmt_metric(r["exact_match"]),
+        ]
+        for r in rows
+    ]
+    widths = [
+        max(len(headers[i]), *(len(row[i]) for row in table))
+        for i in range(len(headers))
+    ]
+
+    def line(left: str, mid: str, right: str) -> str:
+        return left + mid.join("─" * (w + 2) for w in widths) + right
+
+    def row(cells: list[str]) -> str:
+        return "│ " + " │ ".join(c.ljust(w) for c, w in zip(cells, widths)) + " │"
+
+    print(line("┌", "┬", "┐"))
+    print(row(headers))
+    print(line("├", "┼", "┤"))
+    for r in table:
+        print(row(r))
+    print(line("└", "┴", "┘"))
+
+    ratios = [
+        float(r["value_ratio"])
+        for r in rows
+        if isinstance(r["value_ratio"], (int, float)) and math.isfinite(float(r["value_ratio"]))
+    ]
+    if ratios:
+        print(f"Best value_ratio: {max(ratios):.4f}")
+        print(f"Mean value_ratio: {sum(ratios) / len(ratios):.4f}")
+    else:
+        print("Best value_ratio: N/A (ninguna corrida con score numérico)")
+        print("Mean value_ratio: N/A")
+
+
+def main() -> None:
+    """Run the submit-and-poll flow for Challenge 03 (single or --repeat mode)."""
+    # Fuerza UTF-8 en consolas Windows (cp1252) para los caracteres de caja y —.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    parser = argparse.ArgumentParser(description="Challenge 03 — Knapsack submission")
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Envía el mismo prompt N veces, esperando 30s entre submissions.",
+    )
+    args = parser.parse_args()
+    if args.repeat < 1:
+        print("ERROR: --repeat debe ser >= 1.")
+        sys.exit(1)
+
+    api_key = load_api_key()
+    prompt = load_prompt()
+    validate_prompt(prompt)
+
+    # Verificación: el prompt se envía TAL CUAL desde prompt.txt; el servidor
+    # sustituye {{input}}, no este script. Mostramos lo que realmente se manda.
+    print("------------------------------------------------")
+    print("Prompt exacto enviado (primeros 500 chars):")
+    print(repr(prompt[:500]))
+    print(f"Contiene placeholder '{{{{input}}}}': {'{{input}}' in prompt}")
+    print("------------------------------------------------")
+
+    if args.repeat == 1:
+        submission_id, result = run_single(prompt, api_key)
+        print_result(result, submission_id)
+        return
+
+    rows: list[dict] = []
+    for i in range(1, args.repeat + 1):
+        print(f"\n===== Corrida {i}/{args.repeat} =====")
+        submission_id, result = run_single(prompt, api_key)
+        metrics = result.get("metrics") or {}
+        rows.append(
+            {
+                "n": i,
+                "submission_id": submission_id,
+                "value_ratio": metrics.get("value_ratio", float("nan")),
+                "exact_match": metrics.get("exact_match", float("nan")),
+            }
+        )
+        print_result(result, submission_id)
+        if i < args.repeat:
+            print(f"Esperando {REPEAT_DELAY}s antes de la siguiente submission...")
+            time.sleep(REPEAT_DELAY)
+
+    print("\n================ RESUMEN ================")
+    print_summary_table(rows)
 
 
 if __name__ == "__main__":
