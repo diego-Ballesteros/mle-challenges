@@ -1,0 +1,130 @@
+Eres un optimizador experto en el problema de la mochila (Knapsack 0/1).
+
+Tu tarea: dado un dron con capacidad limitada y una lista de paquetes,
+debes ordenarlos de MAYOR a MENOR prioridad para que al cargarlos en
+ese orden (tomando cada uno si cabe), se maximice el valor total.
+
+MÉTODO OBLIGATORIO — Búsqueda exhaustiva exacta:
+Con 10 paquetes existen exactamente 2^10 = 1024 subsets posibles.
+Debes encontrar el subset de mayor valor que no exceda la capacidad.
+
+Sigue EXACTAMENTE estos pasos:
+
+PASO 1 — Calcula el ratio valor/peso de cada paquete.
+  Ordénalos de mayor a menor ratio. Estos son tus candidatos prioritarios.
+
+PASO 2 — Identifica subsets candidatos:
+  Evalúa sistemáticamente combinaciones de 1, 2, 3, 4 y 5 paquetes.
+  Para cada combinación verifica: suma_pesos <= capacidad.
+  Registra el valor total de cada combinación factible.
+
+PASO 3 — Encuentra el subset óptimo:
+  El subset óptimo es el de MAYOR valor total entre todos los factibles.
+  Verifica explícitamente: suma_pesos_optimo <= capacidad.
+  Calcula: valor_optimo = suma de valores del subset.
+
+PASO 4 — Ordena TODOS los paquetes:
+  Primero: paquetes del subset óptimo, de mayor a menor valor.
+  Luego: paquetes descartados, de mayor a menor ratio.
+
+PASO 5 — Emite el JSON final:
+  El JSON debe ser el ÚLTIMO elemento de tu respuesta.
+  Formato: ["P01","P02",...] con los 10 IDs en orden de prioridad.
+
+--- EJEMPLO RESUELTO 1 ---
+
+Capacidad máxima del dron: 50 kg
+
+Paquetes (id, peso, valor):
+- P01: 23 kg, $505
+- P02: 31 kg, $352
+- P03: 14 kg, $458
+- P04: 9 kg, $220
+- P05: 18 kg, $354
+- P06: 27 kg, $414
+- P07: 11 kg, $498
+- P08: 7 kg, $545
+- P09: 22 kg, $473
+- P10: 16 kg, $287
+
+PASO 1 — Ratios:
+P08:77.86 P07:45.27 P03:32.71 P04:24.44 P01:21.96
+P09:21.50 P05:19.67 P10:17.94 P06:15.33 P02:11.35
+
+PASO 2 — Evaluación de subsets (los más prometedores):
+Subsets de 4 paquetes que quepan en 50kg:
+P08+P07+P03+P04 = 7+11+14+9  = 41kg → $1,721
+P08+P07+P03+P05 = 7+11+14+18 = 50kg → $1,855 ✓
+P08+P07+P03+P01 = 7+11+14+23 = 55kg ❌
+P08+P07+P04+P05 = 7+11+9+18  = 45kg → $1,617
+P08+P07+P03+P09 = 7+11+14+22 = 54kg ❌
+P08+P03+P05+P09 = 7+14+18+22 = 61kg ❌
+P07+P03+P05+P04 = 11+14+18+9 = 52kg ❌
+
+Subsets de 5 paquetes:
+P08+P07+P03+P04+P10=7+11+14+9+16=57kg ❌
+P08+P07+P04+P05+P10=7+11+9+18+16=61kg ❌
+
+PASO 3 — Subset óptimo:
+Mejor encontrado: P08+P07+P03+P05 = 50kg → $1,855
+Verificación: 7+11+14+18 = 50kg ✓ (no excede 50kg)
+
+PASO 4 — Orden final:
+Óptimos (mayor a menor valor): P08($545), P07($498), P03($458), P05($354)
+Descartados (mayor a menor ratio): P04, P01, P09, P10, P06, P02
+
+PASO 5 — JSON final:
+["P08","P07","P03","P05","P04","P01","P09","P10","P06","P02"]
+
+--- EJEMPLO RESUELTO 2 ---
+
+Capacidad máxima del dron: 50 kg
+
+Paquetes (id, peso, valor):
+- P01: 12 kg, $240
+- P02: 20 kg, $500
+- P03: 33 kg, $600
+- P04: 8 kg, $150
+- P05: 25 kg, $510
+- P06: 17 kg, $300
+- P07: 5 kg, $130
+- P08: 29 kg, $540
+- P09: 14 kg, $290
+- P10: 10 kg, $260
+
+PASO 1 — Ratios:
+P07:26.00 P10:26.00 P02:25.00 P09:20.71 P05:20.40
+P01:20.00 P04:18.75 P08:18.62 P03:18.18 P06:17.65
+
+PASO 2 — Evaluación de subsets:
+Subsets de 4 paquetes:
+P07+P10+P02+P09 = 5+10+20+14 = 49kg → $1,180 ✓
+P07+P10+P02+P05 = 5+10+20+25 = 60kg ❌
+P07+P10+P02+P01 = 5+10+20+12 = 47kg → $1,130
+P07+P10+P02+P04 = 5+10+20+8  = 43kg → $1,040
+P07+P10+P05+P09 = 5+10+25+14 = 54kg ❌
+P07+P02+P09+P01 = 5+20+14+12 = 51kg ❌
+
+Subsets de 5 paquetes:
+P07+P10+P02+P09+P04 = 5+10+20+14+8 = 57kg ❌
+P07+P10+P09+P01+P04 = 5+10+14+12+8 = 49kg → $1,070
+
+PASO 3 — Subset óptimo:
+Mejor encontrado: P07+P10+P02+P09 = 49kg → $1,180
+Verificación: 5+10+20+14 = 49kg ✓
+
+PASO 4 — Orden final:
+Óptimos (mayor a menor valor): P02($500), P09($290), P10($260), P07($130)
+Descartados (mayor a menor ratio): P05, P01, P04, P08, P03, P06
+
+PASO 5 — JSON final:
+["P02","P09","P10","P07","P05","P01","P04","P08","P03","P06"]
+
+--- AHORA TU TURNO ---
+
+{{input}}
+
+Sigue exactamente los mismos 5 pasos.
+IMPORTANTE: evalúa múltiples subsets explícitamente antes de decidir.
+El greedy por ratio NO garantiza el óptimo — debes explorar combinaciones.
+Termina SIEMPRE con el arreglo JSON como último elemento de tu respuesta.
